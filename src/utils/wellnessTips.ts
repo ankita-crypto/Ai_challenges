@@ -48,6 +48,13 @@ export const examTips: Record<string, WellnessTip[]> = {
       title: 'Muting the Peer Noise',
       content: 'Hearing peer progress on syllabus completion or high mock percentiles can trigger intense comparison and panic.',
       actionableStep: 'Limit exam-related discussions with friends to 15 minutes a day. Focus on your daily targets. Your competition is only with yesterday\'s version of yourself.'
+    },
+    {
+      id: 'jee_result',
+      category: 'Result Season Anxiety',
+      title: 'Navigating Cutoffs and Ranks',
+      content: 'JEE results release with percentiles and rank lists that determine college entry. Seeing a rank below expectations can induce catastrophic thoughts about career options.',
+      actionableStep: 'Remind yourself: "Your JEE rank determines your first college, not your career trajectory." Create a list of 5 successful software engineers/founders who graduated from local non-IIT colleges.'
     }
   ],
   NEET: [
@@ -71,6 +78,13 @@ export const examTips: Record<string, WellnessTip[]> = {
       title: 'Restoring Oxygen and Posture',
       content: 'Long hours of sitting bent over textbooks restrict oxygen flow to the brain, causing brain fog and sleepiness.',
       actionableStep: 'Every 45 minutes, do 5 shoulder rolls and take 3 deep belly breaths. Sit up straight to keep your energy levels steady.'
+    },
+    {
+      id: 'neet_result',
+      category: 'Result Season Anxiety',
+      title: 'The Score vs Rank Shock',
+      content: 'NEET ranks can fluctuate wildly even for the same score due to intense competition. This can make you feel like your hard work was wasted.',
+      actionableStep: 'Sit down and write down: "I did my best under extreme pressure. My rank is a reflection of competition density, not my intelligence." Discuss drop vs backup options with an objective advisor, not peer groups.'
     }
   ],
   UPSC: [
@@ -94,6 +108,13 @@ export const examTips: Record<string, WellnessTip[]> = {
       title: 'Focusing on the Input, Letting go of Output',
       content: 'With low success rates, the fear of "wasting years" can freeze your ability to study.',
       actionableStep: 'Shift your goals from output ("I must pass") to inputs ("I will complete these 3 answer-writing practices today"). Celebrate input completion.'
+    },
+    {
+      id: 'upsc_result',
+      category: 'Result Season Anxiety',
+      title: 'Dealing with the "PDF Filter"',
+      content: 'When the UPSC final PDF results come out, not seeing your roll number after months of interviews can trigger absolute grief and identity crisis.',
+      actionableStep: 'Give yourself 48 hours to grieve without making any decision about the next attempt. Remember: "Not clearing UPSC is not a failure of intelligence; it is a statistical filter. My GS knowledge makes me an asset anywhere."'
     }
   ],
   BOARD: [
@@ -110,6 +131,13 @@ export const examTips: Record<string, WellnessTip[]> = {
       title: 'Writing Room Grounding',
       content: 'The sight of the large exam hall, strict invigilators, and rustling papers triggers high anxiety right before paper distribution.',
       actionableStep: 'As soon as you sit down, place both feet flat on the floor. Touch the wooden desk and notice its temperature. Breathe out slowly. Remind yourself: "This is just a paper with questions I have seen before."'
+    },
+    {
+      id: 'board_result',
+      category: 'Result Season Anxiety',
+      title: 'Managing Relatives and Comparison',
+      content: 'Board exam result days are often accompanied by calls from relatives and comparison with neighbor scores, which can feel deeply intrusive.',
+      actionableStep: 'Prepare a standard polite reply: "I scored X% and I am satisfied with my efforts. Thank you for asking!" Instruct your parents to handle calls if you feel overwhelmed.'
     }
   ],
   CAT_GATE: [
@@ -126,6 +154,13 @@ export const examTips: Record<string, WellnessTip[]> = {
       title: 'Resetting Between Sections',
       content: 'A bad performance in one section (like QA or VARC) can ruin your mindset for subsequent sections.',
       actionableStep: 'Develop a mental "flush" routine. When a section ends, take a deep breath, close your eyes for 5 seconds, and mentally "flush" those questions away. Focus 100% on the fresh section.'
+    },
+    {
+      id: 'cat_gate_result',
+      category: 'Result Season Anxiety',
+      title: 'Handling Shortlist Rejections',
+      content: 'Result season is followed by shortlisting for interviews (IIMs/IITs). Getting rejected from top-choice programs can feel like a professional dead end.',
+      actionableStep: 'Create a spreadsheet of "Plan B" programs and direct corporate roles. Remember that 70% of business/technical leaders did not attend tier-1 schools but grew through consistent industry execution.'
     }
   ],
   GENERAL: [
@@ -149,6 +184,13 @@ export const examTips: Record<string, WellnessTip[]> = {
       title: 'Dopamine Reset for Study Desk',
       content: 'Constantly checking social media or exam forums for notifications ruins focus and fuels anxiety.',
       actionableStep: 'Put your phone in another room or turn it completely off during study sessions. Clear your desk of everything except the subject you are currently studying.'
+    },
+    {
+      id: 'general_result',
+      category: 'Result Season Anxiety',
+      title: 'Managing Result Day Panic',
+      content: 'The days leading up to result release are filled with extreme anxiety, physical symptoms, and sleeplessness.',
+      actionableStep: 'Keep your routine identical to any normal day. Limit time on social media forums that speculate on result timings. Engage in visual grounding when heart rate rises.'
     }
   ]
 };
