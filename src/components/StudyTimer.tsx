@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, Clock, Coffee, Heart } from 'lucide-react';
+import { secureRandom } from '../utils/security';
 
 interface StudyTimerProps {
   onPomodoroComplete: () => void;
@@ -13,6 +14,10 @@ const MINDFUL_BREAK_TIPS = [
   "Step away from your desk completely. Do not check your phone or notifications during this break."
 ];
 
+interface WebkitAudioWindow extends Window {
+  webkitAudioContext?: typeof AudioContext;
+}
+
 export const StudyTimer: React.FC<StudyTimerProps> = ({ onPomodoroComplete }) => {
   const [mode, setMode] = useState<'focus' | 'break'>('focus');
   const [isActive, setIsActive] = useState(false);
@@ -24,7 +29,10 @@ export const StudyTimer: React.FC<StudyTimerProps> = ({ onPomodoroComplete }) =>
   // Synthesize beep sound via Web Audio API
   const playBeep = () => {
     try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContextClass = window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext;
+      if (!AudioContextClass) {
+        return;
+      }
       const ctx = new AudioContextClass();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -36,33 +44,39 @@ export const StudyTimer: React.FC<StudyTimerProps> = ({ onPomodoroComplete }) =>
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.4);
-    } catch (e) {}
+    } catch {
+      console.warn('Timer audio cue could not be played.');
+    }
   };
 
   useEffect(() => {
-    let interval: any = null;
-
-    if (isActive && secondsLeft > 0) {
-      interval = setInterval(() => {
-        setSecondsLeft(s => s - 1);
-      }, 1000);
-    } else if (isActive && secondsLeft === 0) {
-      playBeep();
-      if (mode === 'focus') {
-        onPomodoroComplete();
-        setMode('break');
-        setSecondsLeft(5 * 60);
-        // Set a random break tip
-        setBreakTipIdx(Math.floor(Math.random() * MINDFUL_BREAK_TIPS.length));
-      } else {
-        setMode('focus');
-        setSecondsLeft(25 * 60);
-      }
-      setIsActive(false);
+    if (!isActive) {
+      return undefined;
     }
 
-    return () => clearInterval(interval);
-  }, [isActive, secondsLeft, mode]);
+    const interval: ReturnType<typeof window.setInterval> = window.setInterval(() => {
+      setSecondsLeft((currentSeconds) => {
+        if (currentSeconds > 1) {
+          return currentSeconds - 1;
+        }
+
+        playBeep();
+        if (mode === 'focus') {
+          onPomodoroComplete();
+          setMode('break');
+          setBreakTipIdx(Math.floor(secureRandom() * MINDFUL_BREAK_TIPS.length));
+          setIsActive(false);
+          return 5 * 60;
+        }
+
+        setMode('focus');
+        setIsActive(false);
+        return 25 * 60;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [isActive, mode, onPomodoroComplete]);
 
   const toggleTimer = () => {
     setIsActive(!isActive);

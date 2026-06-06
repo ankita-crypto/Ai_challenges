@@ -8,10 +8,11 @@ import {
   Sun, 
   Moon 
 } from 'lucide-react';
+import type { AppTab } from '../types/wellness';
 
 interface NavigationProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
+  activeTab: AppTab;
+  setActiveTab: (tab: AppTab) => void;
   theme: 'dark' | 'light';
   toggleTheme: () => void;
 }
@@ -23,15 +24,16 @@ export const Navigation: React.FC<NavigationProps> = ({
   toggleTheme 
 }) => {
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'tracker', label: 'Check-In', icon: Smile },
-    { id: 'analytics', label: 'Insights', icon: BarChart2 },
-    { id: 'bot', label: 'CalmBot', icon: MessageCircle },
-    { id: 'tools', label: 'Wellness Tools', icon: Activity }
+    { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'tracker' as const, label: 'Check-In', icon: Smile },
+    { id: 'analytics' as const, label: 'Insights', icon: BarChart2 },
+    { id: 'bot' as const, label: 'CalmBot', icon: MessageCircle },
+    { id: 'tools' as const, label: 'Wellness Tools', icon: Activity }
   ];
 
   return (
     <nav className="nav-wrapper">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <div className="nav-container glass-panel">
         <div className="nav-logo-area">
           <Activity className="nav-logo-icon" size={24} />
@@ -49,6 +51,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                 className={`nav-link-btn ${isActive ? 'active' : ''}`}
                 aria-label={`Navigate to ${item.label}`}
                 aria-current={isActive ? 'page' : undefined}
+                type="button"
               >
                 <Icon size={20} className="nav-icon" />
                 <span className="nav-label">{item.label}</span>
@@ -63,6 +66,7 @@ export const Navigation: React.FC<NavigationProps> = ({
             onClick={toggleTheme} 
             className="theme-toggle-btn"
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            type="button"
           >
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </button>
@@ -76,6 +80,22 @@ export const Navigation: React.FC<NavigationProps> = ({
           position: sticky;
           top: 16px;
           z-index: 100;
+        }
+
+        .skip-link {
+          position: absolute;
+          left: 24px;
+          top: -48px;
+          background: var(--color-primary);
+          color: #fff;
+          padding: 8px 12px;
+          border-radius: 6px;
+          transition: top 0.2s ease;
+        }
+
+        .skip-link:focus {
+          top: 8px;
+          z-index: 101;
         }
 
         .nav-container {

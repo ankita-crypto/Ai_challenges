@@ -11,7 +11,7 @@ export interface BotStep {
   textPlaceholder?: string;
   textSubmitButtonText?: string;
   textInputKey?: string;
-  actionEffect?: string; // e.g. "show_breathing", "show_grounding"
+  actionEffect?: ToolActionEffect;
 }
 
 export const CBT_FLOWS: Record<string, BotStep> = {
@@ -246,3 +246,4 @@ export const CBT_FLOWS: Record<string, BotStep> = {
     ]
   }
 };
+import type { ToolActionEffect } from '../types/wellness';

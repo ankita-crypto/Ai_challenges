@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Play, Volume2, VolumeX, Info, RotateCcw } from 'lucide-react';
+import { secureRandom } from '../utils/security';
 
 type BreathingPhase = 'idle' | 'inhale' | 'hold_in' | 'exhale' | 'hold_out';
 
@@ -9,6 +10,25 @@ const PHASE_CONFIG: Record<BreathingPhase, { text: string; duration: number; cla
   hold_in: { text: 'Hold Your Breath...', duration: 4, className: 'phase-hold-in' },
   exhale: { text: 'Exhale Completely...', duration: 4, className: 'phase-exhale' },
   hold_out: { text: 'Hold Empty...', duration: 4, className: 'phase-hold-out' }
+};
+
+interface WebkitAudioWindow extends Window {
+  webkitAudioContext?: typeof AudioContext;
+}
+
+const getNextPhase = (currentPhase: BreathingPhase): BreathingPhase => {
+  switch (currentPhase) {
+    case 'inhale':
+      return 'hold_in';
+    case 'hold_in':
+      return 'exhale';
+    case 'exhale':
+      return 'hold_out';
+    case 'hold_out':
+      return 'inhale';
+    default:
+      return 'idle';
+  }
 };
 
 export const BreathingExercise: React.FC = () => {
@@ -23,44 +43,62 @@ export const BreathingExercise: React.FC = () => {
   const lfoRef = useRef<OscillatorNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
 
-  // Timer effect
   useEffect(() => {
     if (phase === 'idle') return;
 
-    if (timeLeft <= 0) {
-      // Transition to next phase
-      let nextPhase: BreathingPhase = 'idle';
-      switch (phase) {
-        case 'inhale':
-          nextPhase = 'hold_in';
-          break;
-        case 'hold_in':
-          nextPhase = 'exhale';
-          break;
-        case 'exhale':
-          nextPhase = 'hold_out';
-          break;
-        case 'hold_out':
-          nextPhase = 'inhale';
-          setCyclesCompleted(c => c + 1);
-          break;
+    const timer = window.setTimeout(() => {
+      if (timeLeft > 1) {
+        setTimeLeft(t => t - 1);
+        return;
       }
+
+      const nextPhase = getNextPhase(phase);
       setPhase(nextPhase);
       setTimeLeft(PHASE_CONFIG[nextPhase].duration);
-    } else {
-      const timer = setTimeout(() => {
-        setTimeLeft(t => t - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
+
+      if (phase === 'hold_out') {
+        setCyclesCompleted(c => c + 1);
+      }
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
   }, [phase, timeLeft]);
 
-  // Audio synthesizer cleanup
+  const stopAudio = useCallback(() => {
+    if (noiseSourceRef.current) {
+      try {
+        noiseSourceRef.current.stop();
+      } catch {
+        console.warn('Audio source was already stopped.');
+      }
+      noiseSourceRef.current.disconnect();
+      noiseSourceRef.current = null;
+    }
+    if (lfoRef.current) {
+      try {
+        lfoRef.current.stop();
+      } catch {
+        console.warn('Audio oscillator was already stopped.');
+      }
+      lfoRef.current.disconnect();
+      lfoRef.current = null;
+    }
+    if (gainNodeRef.current) {
+      gainNodeRef.current.disconnect();
+      gainNodeRef.current = null;
+    }
+    if (audioCtxRef.current) {
+      void audioCtxRef.current.close();
+      audioCtxRef.current = null;
+    }
+    setIsPlayingAudio(false);
+  }, []);
+
   useEffect(() => {
     return () => {
       stopAudio();
     };
-  }, []);
+  }, [stopAudio]);
 
   const startBreathing = () => {
     setPhase('inhale');
@@ -76,7 +114,10 @@ export const BreathingExercise: React.FC = () => {
   // Web Audio Synthesis: Synthesizes relaxing brown noise with LFO volume modulation for "ocean waves"
   const startAudio = () => {
     try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContextClass = window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext;
+      if (!AudioContextClass) {
+        throw new Error('Web Audio API unavailable');
+      }
       const ctx = new AudioContextClass();
       audioCtxRef.current = ctx;
 
@@ -87,7 +128,7 @@ export const BreathingExercise: React.FC = () => {
       let lastOut = 0.0;
 
       for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
+        const white = secureRandom() * 2 - 1;
         // Lowpass filter algorithm to turn white noise to brown noise
         output[i] = (lastOut + (0.02 * white)) / 1.02;
         lastOut = output[i];
@@ -126,31 +167,9 @@ export const BreathingExercise: React.FC = () => {
       source.start(0);
       lfo.start(0);
       setIsPlayingAudio(true);
-    } catch (e) {
-      console.error('Failed to initialize synthesized audio:', e);
+    } catch {
+      console.warn('Synthesized audio could not be initialized.');
     }
-  };
-
-  const stopAudio = () => {
-    if (noiseSourceRef.current) {
-      try { noiseSourceRef.current.stop(); } catch (e) {}
-      noiseSourceRef.current.disconnect();
-      noiseSourceRef.current = null;
-    }
-    if (lfoRef.current) {
-      try { lfoRef.current.stop(); } catch (e) {}
-      lfoRef.current.disconnect();
-      lfoRef.current = null;
-    }
-    if (gainNodeRef.current) {
-      gainNodeRef.current.disconnect();
-      gainNodeRef.current = null;
-    }
-    if (audioCtxRef.current) {
-      audioCtxRef.current.close();
-      audioCtxRef.current = null;
-    }
-    setIsPlayingAudio(false);
   };
 
   const toggleAudio = () => {

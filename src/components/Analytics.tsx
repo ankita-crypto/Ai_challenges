@@ -5,21 +5,12 @@ import {
   Info,
   Activity
 } from 'lucide-react';
+import type { MoodLog } from '../types/wellness';
+import { TRIGGER_LABELS } from '../utils/wellnessData';
 
 interface AnalyticsProps {
-  moodLogs: any[];
+  moodLogs: MoodLog[];
 }
-
-const TRIGGER_MAP: Record<string, string> = {
-  backlog: 'Syllabus Backlog',
-  mock_tests: 'Mock Test Scores',
-  family_pressure: 'Family Expectations',
-  peer_comparison: 'Comparing to Peers',
-  sleep_deprived: 'Lack of Sleep',
-  time_management: 'Time Management',
-  exam_date: 'Exam Date Approaching',
-  general_life: 'Non-Academic Issues'
-};
 
 const MOOD_RATINGS: Record<number, string> = {
   5: '🌿 Calm',
@@ -68,7 +59,7 @@ export const Analytics: React.FC<AnalyticsProps> = ({ moodLogs }) => {
   const sortedTriggers = Object.entries(triggerCounts)
     .map(([id, count]) => ({
       id,
-      name: TRIGGER_MAP[id] || id,
+      name: TRIGGER_LABELS[id as keyof typeof TRIGGER_LABELS] || 'Recorded trigger',
       count,
       percentage: Math.round((count / totalLogs) * 100)
     }))
@@ -157,7 +148,7 @@ export const Analytics: React.FC<AnalyticsProps> = ({ moodLogs }) => {
             <h3>Mood Trend (Last 10 entries)</h3>
           </div>
           <div className="svg-container">
-            <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="trend-svg">
+            <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="trend-svg" role="img" aria-label="Mood trend chart for recent check-ins">
               <defs>
                 <linearGradient id="chartAreaGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.4" />
@@ -243,6 +234,10 @@ export const Analytics: React.FC<AnalyticsProps> = ({ moodLogs }) => {
                     fill={hoveredPoint === idx ? 'var(--color-secondary)' : 'var(--color-primary)'} 
                     stroke="var(--text-primary)" 
                     strokeWidth="1.5"
+                    tabIndex={0}
+                    aria-label={`${pt.date}: ${pt.mood}, wellness index ${pt.rating} out of 5`}
+                    onFocus={() => setHoveredPoint(idx)}
+                    onBlur={() => setHoveredPoint(null)}
                   />
                 </g>
               ))}

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, RefreshCw, Send } from 'lucide-react';
 import { CBT_FLOWS, type BotStep } from '../utils/cbtBotLogic';
+import type { ToolActionEffect } from '../types/wellness';
+import { sanitizePlainText, sanitizeText, SECURITY_LIMITS } from '../utils/security';
 
 interface Message {
   id: string;
@@ -9,7 +11,7 @@ interface Message {
 }
 
 interface CalmBotProps {
-  onTriggerAction: (action: string) => void;
+  onTriggerAction: (action: ToolActionEffect) => void;
 }
 
 export const CalmBot: React.FC<CalmBotProps> = ({ onTriggerAction }) => {
@@ -25,35 +27,42 @@ export const CalmBot: React.FC<CalmBotProps> = ({ onTriggerAction }) => {
   const [textInputValue, setTextInputValue] = useState<string>('');
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
+  const messageCounterRef = useRef(0);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        window.clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleStepTransition = (nextStepId: string, userResponseText: string) => {
-    // 1. Add user message
-    const userMsgId = `user_${Date.now()}`;
-    setMessages(prev => [...prev, { id: userMsgId, sender: 'user', text: userResponseText }]);
+    const safeUserText = sanitizeText(userResponseText, SECURITY_LIMITS.chatMessage);
+    messageCounterRef.current += 1;
+    const userMsgId = `user_${messageCounterRef.current}`;
+    setMessages(prev => [...prev, { id: userMsgId, sender: 'user', text: safeUserText }]);
     
-    // 2. Set typing indicator
     setIsTyping(true);
 
     const nextStep = CBT_FLOWS[nextStepId] || CBT_FLOWS.start;
 
-    setTimeout(() => {
+    typingTimeoutRef.current = window.setTimeout(() => {
       setIsTyping(false);
       
-      // 3. Add bot response
-      const botMsgId = `bot_${Date.now()}`;
+      messageCounterRef.current += 1;
+      const botMsgId = `bot_${messageCounterRef.current}`;
       setMessages(prev => [...prev, { id: botMsgId, sender: 'bot', text: nextStep.text }]);
       
-      // 4. Check for action effects (e.g., show breathing, grounding, timer)
       if (nextStep.actionEffect) {
         onTriggerAction(nextStep.actionEffect);
       }
 
-      // 5. Update state
       setCurrentStep(nextStep);
     }, 1000);
   };
@@ -66,7 +75,7 @@ export const CalmBot: React.FC<CalmBotProps> = ({ onTriggerAction }) => {
     e.preventDefault();
     if (!textInputValue.trim()) return;
 
-    const userInput = textInputValue.trim();
+    const userInput = sanitizeText(textInputValue, SECURITY_LIMITS.chatMessage);
     setTextInputValue('');
 
     // Determine next step
@@ -86,9 +95,10 @@ export const CalmBot: React.FC<CalmBotProps> = ({ onTriggerAction }) => {
   };
 
   const handleReset = () => {
+    messageCounterRef.current += 1;
     setMessages([
       {
-        id: `reset_${Date.now()}`,
+        id: `reset_${messageCounterRef.current}`,
         sender: 'bot',
         text: CBT_FLOWS.start.text
       }
@@ -147,7 +157,7 @@ export const CalmBot: React.FC<CalmBotProps> = ({ onTriggerAction }) => {
       <footer className="chat-footer">
         {/* Render buttons if options exist and not typing */}
         {!isTyping && currentStep.options && currentStep.options.length > 0 && (
-          <div className="chat-options-container">
+          <div className="chat-options-container" role="group" aria-label="CalmBot response options">
             {currentStep.options.map((opt, idx) => (
               <button
                 key={idx}
@@ -166,10 +176,11 @@ export const CalmBot: React.FC<CalmBotProps> = ({ onTriggerAction }) => {
             <input
               type="text"
               value={textInputValue}
-              onChange={(e) => setTextInputValue(e.target.value)}
+              onChange={(e) => setTextInputValue(sanitizePlainText(e.target.value, SECURITY_LIMITS.chatMessage))}
               placeholder={currentStep.textPlaceholder || "Type your response..."}
               className="glass-input chat-text-input"
-              maxLength={200}
+              aria-label="CalmBot reflection response"
+              maxLength={SECURITY_LIMITS.chatMessage}
               required
             />
             <button type="submit" className="glass-btn glass-btn-primary chat-submit-btn" aria-label="Send message">

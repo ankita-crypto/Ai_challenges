@@ -7,31 +7,15 @@ import {
   FileText,
   Plus
 } from 'lucide-react';
+import type { MoodId, MoodLog, TriggerId } from '../types/wellness';
+import { MOOD_TYPES, TRIGGER_OPTIONS } from '../utils/wellnessData';
+import { isValidMoodId, isValidTriggerId, sanitizePlainText, sanitizeText, SECURITY_LIMITS } from '../utils/security';
 
 interface MoodTrackerProps {
-  moodLogs: any[];
-  onAddLog: (log: any) => void;
+  moodLogs: MoodLog[];
+  onAddLog: (log: MoodLog) => void;
   onDeleteLog: (id: string) => void;
 }
-
-const MOOD_TYPES = [
-  { id: 'calm', label: 'Calm & Focused', emoji: '🌿', rating: 5, color: '#0d9488' },
-  { id: 'energetic', label: 'Energized', emoji: '⚡', rating: 4, color: '#f59e0b' },
-  { id: 'uncertain', label: 'Uncertain / Doubting', emoji: '🌫️', rating: 3, color: '#a855f7' },
-  { id: 'stressed', label: 'Stressed / Anxious', emoji: '😰', rating: 2, color: '#6366f1' },
-  { id: 'burned_out', label: 'Burned Out', emoji: '🔋', rating: 1, color: '#ef4444' }
-];
-
-const TRIGGER_OPTIONS = [
-  { id: 'backlog', label: 'Syllabus Backlog' },
-  { id: 'mock_tests', label: 'Mock Test Scores' },
-  { id: 'family_pressure', label: 'Family Expectations' },
-  { id: 'peer_comparison', label: 'Comparing to Peers' },
-  { id: 'sleep_deprived', label: 'Lack of Sleep' },
-  { id: 'time_management', label: 'Time Management' },
-  { id: 'exam_date', label: 'Exam Date Approaching' },
-  { id: 'general_life', label: 'Non-Academic Issues' }
-];
 
 const JOURNAL_TEMPLATES = [
   {
@@ -53,18 +37,27 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({
   onAddLog,
   onDeleteLog
 }) => {
-  const [selectedMood, setSelectedMood] = useState<string>('');
-  const [selectedTriggers, setSelectedTriggers] = useState<string[]>([]);
+  const [selectedMood, setSelectedMood] = useState<MoodId | ''>('');
+  const [selectedTriggers, setSelectedTriggers] = useState<TriggerId[]>([]);
   const [journalNote, setJournalNote] = useState<string>('');
   const [activeTemplate, setActiveTemplate] = useState<number>(-1);
   const [formError, setFormError] = useState<string>('');
 
-  const handleMoodSelect = (moodId: string) => {
+  const handleMoodSelect = (moodId: MoodId) => {
+    if (!isValidMoodId(moodId)) {
+      setFormError('Invalid mood selection.');
+      return;
+    }
+
     setSelectedMood(moodId);
     setFormError('');
   };
 
-  const handleTriggerToggle = (triggerId: string) => {
+  const handleTriggerToggle = (triggerId: TriggerId) => {
+    if (!isValidTriggerId(triggerId)) {
+      return;
+    }
+
     setSelectedTriggers(prev => 
       prev.includes(triggerId) 
         ? prev.filter(t => t !== triggerId) 
@@ -76,7 +69,7 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({
     if (index === -1) {
       setJournalNote('');
     } else {
-      setJournalNote(JOURNAL_TEMPLATES[index].text);
+      setJournalNote(sanitizePlainText(JOURNAL_TEMPLATES[index].text, SECURITY_LIMITS.journalNote));
     }
     setActiveTemplate(index);
   };
@@ -90,13 +83,14 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({
 
     const moodObj = MOOD_TYPES.find(m => m.id === selectedMood);
 
-    const newLog = {
-      id: Date.now().toString(),
+    const safeNotes = sanitizeText(journalNote, SECURITY_LIMITS.journalNote);
+    const newLog: MoodLog = {
+      id: crypto.randomUUID(),
       date: new Date().toISOString(),
       mood: selectedMood,
       rating: moodObj ? moodObj.rating : 3,
       triggers: selectedTriggers,
-      notes: journalNote.trim()
+      notes: safeNotes
     };
 
     onAddLog(newLog);
@@ -131,8 +125,8 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({
           <form onSubmit={handleSubmit} className="checkin-form">
             {/* Mood selector */}
             <div className="form-section">
-              <label className="section-label">1. How are you feeling right now?</label>
-              <div className="mood-options-grid">
+              <label className="section-label" id="mood-selector-label">1. How are you feeling right now?</label>
+              <div className="mood-options-grid" role="radiogroup" aria-labelledby="mood-selector-label">
                 {MOOD_TYPES.map((m) => (
                   <button
                     key={m.id}
@@ -140,6 +134,8 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({
                     onClick={() => handleMoodSelect(m.id)}
                     className={`mood-card-btn ${selectedMood === m.id ? 'active' : ''}`}
                     style={{ '--mood-color': m.color } as React.CSSProperties}
+                    role="radio"
+                    aria-checked={selectedMood === m.id}
                   >
                     <span className="mood-emoji" role="img" aria-label={m.label}>{m.emoji}</span>
                     <span className="mood-btn-label">{m.label}</span>
@@ -150,8 +146,8 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({
 
             {/* Triggers Checklist */}
             <div className="form-section">
-              <label className="section-label">2. Identify what is contributing to your stress (Triggers):</label>
-              <div className="triggers-flex">
+              <label className="section-label" id="trigger-selector-label">2. Identify what is contributing to your stress (Triggers):</label>
+              <div className="triggers-flex" aria-labelledby="trigger-selector-label">
                 {TRIGGER_OPTIONS.map((t) => {
                   const isChecked = selectedTriggers.includes(t.id);
                   return (
@@ -160,6 +156,7 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({
                       type="button"
                       onClick={() => handleTriggerToggle(t.id)}
                       className={`trigger-tag-btn ${isChecked ? 'active' : ''}`}
+                      aria-pressed={isChecked}
                     >
                       {isChecked && <Plus size={12} className="tag-icon" />}
                       {t.label}
@@ -199,9 +196,11 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({
 
               <textarea
                 value={journalNote}
-                onChange={(e) => setJournalNote(e.target.value)}
+                onChange={(e) => setJournalNote(sanitizePlainText(e.target.value, SECURITY_LIMITS.journalNote))}
                 placeholder="Write down your thoughts. If using a guide above, answer the prompts to challenge stressful thoughts..."
                 className="glass-input journal-textarea"
+                aria-label="Emotion reflection journal"
+                maxLength={SECURITY_LIMITS.journalNote}
                 rows={8}
               />
             </div>
@@ -260,7 +259,7 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({
 
                       {log.triggers && log.triggers.length > 0 && (
                         <div className="history-card-triggers">
-                          {log.triggers.map((tId: string) => {
+                          {log.triggers.map((tId) => {
                             const trg = TRIGGER_OPTIONS.find(o => o.id === tId);
                             return (
                               <span key={tId} className="history-trigger-badge">

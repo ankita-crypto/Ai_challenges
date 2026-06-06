@@ -88,3 +88,16 @@ Object.defineProperty(window, 'AudioContext', {
 Object.defineProperty(window, 'webkitAudioContext', {
   value: AudioContextMock,
 });
+
+Object.defineProperty(window, 'crypto', {
+  value: {
+    getRandomValues: (arr: any) => {
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = Math.floor(Math.random() * 256);
+      }
+      return arr;
+    },
+    randomUUID: () => 'test-uuid-1234'
+  }
+});
+

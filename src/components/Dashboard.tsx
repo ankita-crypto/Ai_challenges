@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   Sparkles, 
   Flame, 
@@ -9,14 +9,17 @@ import {
   Coffee
 } from 'lucide-react';
 import { EXAMS, examTips, DAILY_AFFIRMATIONS, type WellnessTip } from '../utils/wellnessTips';
+import type { AppTab, ExamId, MoodLog } from '../types/wellness';
+import { sanitizeExamId, sanitizePlainText, sanitizeUserName, SECURITY_LIMITS } from '../utils/security';
+import { MOOD_LABELS } from '../utils/wellnessData';
 
 interface DashboardProps {
   userName: string;
   setUserName: (name: string) => void;
-  targetExam: string;
-  setTargetExam: (exam: string) => void;
-  moodLogs: any[];
-  setActiveTab: (tab: string) => void;
+  targetExam: ExamId;
+  setTargetExam: (exam: ExamId) => void;
+  moodLogs: MoodLog[];
+  setActiveTab: (tab: AppTab) => void;
   pomodoroCount: number;
 }
 
@@ -29,22 +32,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
   setActiveTab,
   pomodoroCount
 }) => {
-  const [affirmation, setAffirmation] = useState('');
+  const [affirmation] = useState(() => {
+    const dayIndex = new Date().getDate() % DAILY_AFFIRMATIONS.length;
+    return DAILY_AFFIRMATIONS[dayIndex];
+  });
   const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState(userName);
 
-  // Pick a stable affirmation for the day
-  useEffect(() => {
-    const dayIndex = new Date().getDate() % DAILY_AFFIRMATIONS.length;
-    setAffirmation(DAILY_AFFIRMATIONS[dayIndex]);
-  }, []);
-
   const handleNameSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (tempName.trim()) {
-      setUserName(tempName.trim());
-      setEditingName(false);
-    }
+    setUserName(sanitizeUserName(tempName));
+    setEditingName(false);
   };
 
   // Calculations for stats
@@ -88,17 +86,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
     const lastMood = sorted[0].mood;
-    const moodMap: Record<string, string> = {
-      calm: 'Calm & Focused 🌿',
-      energetic: 'Energized ⚡',
-      stressed: 'Stressed / Anxious 😰',
-      burned_out: 'Exhausted / Burned Out 🔋',
-      uncertain: 'Uncertain / Doubting 🌫️'
-    };
-    return moodMap[lastMood] || lastMood;
+    return MOOD_LABELS[lastMood] || 'Recorded mood';
   };
 
-  const tips: WellnessTip[] = examTips[targetExam] || examTips['GENERAL'];
+  const tips: WellnessTip[] = examTips[targetExam] || examTips.GENERAL;
 
   return (
     <div className="dashboard-layout slide-in">
@@ -108,18 +99,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {editingName ? (
             <form onSubmit={handleNameSave} className="name-form">
               <input 
+                aria-label="Display name"
                 type="text" 
                 value={tempName} 
-                onChange={(e) => setTempName(e.target.value)}
+                onChange={(e) => setTempName(sanitizePlainText(e.target.value, SECURITY_LIMITS.userName))}
                 className="glass-input name-input"
-                maxLength={20}
+                maxLength={32}
                 autoFocus
               />
               <button type="submit" className="glass-btn glass-btn-primary save-btn">Save</button>
             </form>
           ) : (
             <h2 className="welcome-title">
-              Welcome, <span className="highlight-text" onClick={() => setEditingName(true)} title="Click to edit name">{userName}</span>!
+              Welcome, <button type="button" className="highlight-text" onClick={() => setEditingName(true)} title="Edit name">{userName}</button>!
             </h2>
           )}
           <p className="welcome-sub">
@@ -131,7 +123,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <select 
             id="exam-select"
             value={targetExam} 
-            onChange={(e) => setTargetExam(e.target.value)}
+            onChange={(e) => setTargetExam(sanitizeExamId(e.target.value))}
             className="glass-input exam-dropdown"
           >
             {EXAMS.map(exam => (
@@ -265,10 +257,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
         }
 
         .highlight-text {
+          background: transparent;
+          border: 0;
           color: var(--color-primary);
           cursor: pointer;
           border-bottom: 2px dashed var(--color-primary);
           padding-bottom: 2px;
+          font: inherit;
         }
 
         .highlight-text:hover {

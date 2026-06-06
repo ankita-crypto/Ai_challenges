@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Eye, Touchpad, Volume2, Flower, Droplet, ArrowRight, ArrowLeft, RefreshCw, Smile } from 'lucide-react';
+import { Eye, Touchpad, Volume2, Flower, Droplet, ArrowRight, ArrowLeft, RefreshCw, Smile, type LucideIcon } from 'lucide-react';
+import { sanitizePlainText, sanitizeText, SECURITY_LIMITS } from '../utils/security';
 
 interface GroundingStep {
   title: string;
-  icon: React.ComponentType<any>;
+  icon: LucideIcon;
   color: string;
   count: number;
   instruction: string;
@@ -77,7 +78,7 @@ export const GroundingTool: React.FC = () => {
   const handleInputChange = (value: string) => {
     setInputs(prev => {
       const copy = [...prev];
-      copy[currentStepIdx] = value;
+      copy[currentStepIdx] = sanitizePlainText(value, SECURITY_LIMITS.groundingEntry);
       return copy;
     });
   };
@@ -118,7 +119,7 @@ export const GroundingTool: React.FC = () => {
           <ul>
             {GROUNDING_STEPS.map((step, idx) => (
               <li key={idx}>
-                <strong>{step.title}:</strong> {inputs[idx] || 'Reflected quietly'}
+                <strong>{step.title}:</strong> {sanitizeText(inputs[idx], SECURITY_LIMITS.groundingEntry) || 'Reflected quietly'}
               </li>
             ))}
           </ul>
@@ -151,6 +152,8 @@ export const GroundingTool: React.FC = () => {
           onChange={(e) => handleInputChange(e.target.value)}
           placeholder={step.prompt}
           className="glass-input step-textarea"
+          aria-label={`${step.title} grounding reflection`}
+          maxLength={SECURITY_LIMITS.groundingEntry}
           rows={3}
         />
       </div>
